@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --all-extras
+      - name: Lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+      - name: Type check
+        run: uv run mypy
+      - name: Tests
+        run: uv run pytest -q
+
+  backend-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: sales
+          POSTGRES_PASSWORD: sales
+          POSTGRES_DB: sales
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sales -d sales"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      SALES_API_DATABASE_URL: postgresql+psycopg://sales:sales@localhost:5432/sales
+      SALES_API_TEST_DATABASE_URL: postgresql+psycopg://sales:sales@localhost:5432/sales
+      SALES_API_JWT_SECRET: ci-only-secret-not-used-outside-this-job
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --all-extras
+      - name: Migrate
+        run: uv run alembic upgrade head
+      - name: Backend tests (PostgreSQL)
+        run: uv run pytest -q tests/backend
