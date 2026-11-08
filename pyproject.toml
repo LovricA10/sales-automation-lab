@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sales-lab"
+version = "0.2.0"
+description = "A small ETL + SQL + API project for learning Python"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.2",
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    # Backend API
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "pydantic-settings>=2.4",
+    "psycopg[binary]>=3.2",
+    "pyjwt>=2.9",
+    "pwdlib[argon2]>=0.2",
+    "python-multipart>=0.0.9",   # required by FastAPI for form data and file uploads
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "httpx>=0.27",       # required by FastAPI's TestClient
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+
+[project.scripts]
+sales-lab = "sales_lab.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sales_lab", "src/sales_api"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "PL"]
+ignore = ["PLR2004"]  # magic numbers are fine in tests
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src"]
+
+[[tool.mypy.overrides]]
+# pandas ships without type hints; pandas-stubs could be added later
+module = ["pandas", "pandas.*"]
+ignore_missing_imports = true
